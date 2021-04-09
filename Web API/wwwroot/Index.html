@@ -1,0 +1,224 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>WEB API .NET Core</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body style="padding: 100px 400px;background: antiquewhite;border: solid gold 5px;">
+    <h2>WEB API .NET Core</h2>
+    <form name="userForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group col-md-5">
+            <label for="name">Имя:</label>
+            <input class="form-control" name="name" />
+        </div>
+        <div class="form-group col-md-5">
+            <label for="order_number">Заказ №:</label>
+            <input class="form-control" name="order_number" />
+        </div>
+        <div class="form-group col-md-5" style="float: right; position: relative; top: -173px;">
+            <label for="search">Поиск:</label>
+            <input class="form-control" name="search" />
+            <button type="submit" id="bsearch" class="btn btn-success btn-sm" style=" margin: 10px 0px 0px 0px; width: 20%; float: right;">Найти</button>
+        </div>
+        <div class="panel-body">
+            <button type="submit" id="save" class="btn btn-success btn-sm">Сохранить</button>
+            <a id="reset" class="btn btn-secondary btn-sm">Сбросить</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped  panel-body">
+        <thead><tr><th>Id</th><th>Имя</th><th>Заказ №</th><th>Статус</th><th></th></tr></thead>
+        <tbody></tbody>
+    </table>
+    <div>2020 © alesunix.github.io</div>
+    <script>
+        // Поиск по Номеру заказа
+        async function GetSearch(search) {
+            const response = await fetch("/api/orders/" + search, {
+                method: "GET",
+                headers: { "Accept": "application/json" },
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                const form = document.forms["userForm"];
+                form.elements["search"].value = user.search;
+                reset();
+                document.querySelector("tbody").append(row(user));
+            }
+        }
+        // отправка формы Поиск
+        document.forms["userForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["userForm"];
+            const search = form.elements["search"].value;
+
+            if (search == "")
+                alert('Введите номер заказа в поле Поиск!');
+            else
+                GetSearch(search);
+        });
+
+        // Получение всех пользователей
+        async function GetUsers() {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/orders", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const users = await response.json();
+                let rows = document.querySelector("tbody");
+                users.forEach(user => {
+                    // добавляем полученные элементы в таблицу
+                    rows.append(row(user));
+                });
+            }
+        }
+        // Получение одного пользователя
+        async function GetUser(id) {
+            const response = await fetch("/api/orders/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                const form = document.forms["userForm"];
+                form.elements["id"].value = user.id;
+                form.elements["name"].value = user.name;
+                form.elements["order_number"].value = user.order_number;
+            }
+        }
+        // Добавление пользователя
+        async function CreateUser(uName, uorder_number) {
+            const response = await fetch("api/orders/", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: uName,
+                    order_number: uorder_number,
+                })
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(user));
+            }
+        }
+        // Изменение пользователя
+        async function EditUser(uId, uName, uorder_number) {
+            const response = await fetch("api/orders/", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: parseInt(uId, 10),
+                    name: uName,
+                    order_number: uorder_number
+                })
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + user.id + "']").replaceWith(row(user));
+            }
+        }
+        // Удаление пользователя
+        async function DeleteUser(id) {
+            const response = await fetch("/api/orders/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.querySelector("tr[data-rowid='" + user.id + "']").remove();
+            }
+        }
+
+        // сброс формы
+        function reset() {
+            const form = document.forms["userForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+
+        // создание строки для таблицы
+        function row(user) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", user.id);          
+
+            const idTd = document.createElement("td");
+            idTd.append(user.id);
+            tr.append(idTd);
+            idTd.setAttribute("style", "padding-bottom: 18px;");
+
+            const nameTd = document.createElement("td");
+            nameTd.append(user.name);
+            tr.append(nameTd);
+
+            const order_numberTd = document.createElement("td");
+            order_numberTd.append(user.order_number);
+            tr.append(order_numberTd);
+
+            const statusTd = document.createElement("td");
+            statusTd.append(user.status);
+            tr.append(statusTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", user.id);
+            editLink.setAttribute("style", "cursor:pointer;background-color: #4c9daf;color: white;padding: 10px 22px;margin: 5px;border-radius: 2px;");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                GetUser(user.id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", user.id);
+            removeLink.setAttribute("style", "cursor: pointer;background-color: #af4c4c;color: white;padding: 10px 32px;border-radius: 2px;");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                DeleteUser(user.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+
+        // сброс значений формы
+        document.getElementById("reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+
+        // отправка формы
+        //document.forms["userForm"].addEventListener("submit", e => {
+        //    e.preventDefault();
+        //    const form = document.forms["userForm"];
+        //    const id = form.elements["id"].value;
+        //    const name = form.elements["name"].value;
+        //    const order_number = form.elements["order_number"].value;
+
+        //    if (id == 0)
+        //        CreateUser(name, order_number);
+        //    else
+        //        EditUser(id, name, order_number);
+        //});
+
+        // загрузка пользователей
+        GetUsers();
+
+    </script>
+</body>
+</html>
